@@ -1,6 +1,6 @@
 mod handlers;
 mod utils;
-use handlers::ai::ai;
+use handlers::ai::audio::generate_audio;
 use handlers::events::{
     start_cpu_monitor, start_memory_monitor, start_ping_monitor, start_process_monitor,
 };
@@ -60,6 +60,7 @@ pub fn run() {
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            generate_audio,
             async_write_to_pty,
             async_resize_pty,
             async_create_shell,

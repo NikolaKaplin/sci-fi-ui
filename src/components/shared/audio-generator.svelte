@@ -1,11 +1,9 @@
 <script lang="ts">
-    import { invoke } from '@tauri-apps/api/tauri';
-    import { fade } from 'svelte/transition';
-    import { audioContext } from './stores'; // Опционально, для глобального управления аудио
+    import { invoke } from '@tauri-apps/api/core';
+    import { onMount } from 'svelte';
 
-    export let initialText = '';
-    export let buttonLabel = 'Generate Audio';
-    export let voices = [
+    let text = "";
+    let voices = [
         { value: 'alloy', label: 'Alloy' },
         { value: 'echo', label: 'Echo' },
         { value: 'fable', label: 'Fable' },
@@ -13,216 +11,212 @@
         { value: 'nova', label: 'Nova' },
         { value: 'shimmer', label: 'Shimmer' }
     ];
-    export let selectedVoice = 'echo';
-
-    let text = initialText;
+    let selectedVoice = 'echo';
     let audioUrl: string | null = null;
     let isLoading = false;
-    let error: string | null = null;
-    let audioElement: HTMLAudioElement;
+    let error = "";
 
-    async function generateAudio() {
+    // Аудио визуализация
+    let audioContext: AudioContext;
+    let analyser: AnalyserNode;
+    let dataArray: Uint8Array;
+    let animationId: number;
+    let bars = Array(16).fill(0);
+
+    onMount(() => {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 64;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        return () => {
+            cancelAnimationFrame(animationId);
+            if (audioContext?.state !== 'closed') {
+                audioContext?.close();
+            }
+        };
+    });
+
+    function visualize() {
+        analyser.getByteFrequencyData(dataArray);
+
+        const newBars = [];
+        const step = Math.floor(dataArray.length / bars.length);
+
+        for (let i = 0; i < bars.length; i++) {
+            newBars.push(dataArray[i * step] / 255);
+        }
+
+        bars = newBars;
+        animationId = requestAnimationFrame(visualize);
+    }
+
+    async function generate() {
         if (!text.trim()) {
-            error = 'Please enter some text';
+            error = "Please enter text";
             return;
         }
 
         isLoading = true;
-        error = null;
+        error = "";
 
         try {
-            // Освобождаем предыдущий URL, если он существует
-            if (audioUrl) {
-                URL.revokeObjectURL(audioUrl);
-                audioUrl = null;
-            }
+            if (audioUrl) URL.revokeObjectURL(audioUrl);
 
-            // Вызываем Rust backend
             const audioData = await invoke<number[]>('generate_audio', {
-                text,
+                text: text.trim(),
                 voice: selectedVoice
             });
 
-            // Создаем Blob и URL для аудио
             const blob = new Blob([new Uint8Array(audioData)], { type: 'audio/mpeg' });
             audioUrl = URL.createObjectURL(blob);
 
-            // Воспроизводим автоматически (опционально)
-            setTimeout(() => {
-                if (audioElement) audioElement.play().catch(e => console.error('Playback failed:', e));
-            }, 100);
+            // Подключаем визуализацию
+            const audioEl = new Audio(audioUrl);
+            const source = audioContext.createMediaElementSource(audioEl);
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+
+            audioEl.play();
+            visualize();
+
         } catch (err) {
-            error = `Failed to generate audio: ${err}`;
+            error = `Error: ${err}`;
             console.error(err);
         } finally {
             isLoading = false;
         }
     }
-
-    function handleKeyDown(e: KeyboardEvent) {
-        if (e.key === 'Enter' && e.ctrlKey) {
-            generateAudio();
-        }
-    }
-
-    $: if (initialText && initialText !== text) {
-        text = initialText;
-    }
 </script>
 
-<div class="audio-generator">
-    <div class="input-group">
+<div class="compact-audio-gen">
+    <div class="visualizer">
+        {#each bars as bar, i}
+            <div
+                    class="bar"
+                    style={`height: ${bar * 100}%; background: hsl(${200 + i * 10}, 100%, 50%)`}
+            ></div>
+        {/each}
+    </div>
+
     <textarea
             bind:value={text}
-            on:keydown={handleKeyDown}
-            placeholder="Enter text to convert to speech..."
-            rows={3}
+            placeholder="Enter text..."
+            rows={2}
             disabled={isLoading}
-    />
+    ></textarea>
 
-        <div class="controls">
-            <select bind:value={selectedVoice} disabled={isLoading}>
-                {#each voices as voice}
-                    <option value={voice.value}>{voice.label}</option>
-                {/each}
-            </select>
+    <div class="controls">
+        <select bind:value={selectedVoice} disabled={isLoading}>
+            {#each voices as voice}
+                <option value={voice.value}>{voice.label}</option>
+            {/each}
+        </select>
 
-            <button
-                    on:click={generateAudio}
-                    disabled={isLoading || !text.trim()}
-                    class:loading={isLoading}
-            >
-                {#if isLoading}
-                    <span class="spinner" />
-                {/if}
-                {buttonLabel}
-            </button>
-        </div>
+        <button on:click={generate} disabled={isLoading || !text.trim()}>
+            {#if isLoading}
+                <span class="spinner" ></span>
+            {/if}
+            Generate
+        </button>
     </div>
 
     {#if error}
-        <div transition:fade class="error-message">
-            {error}
-        </div>
-    {/if}
-
-    {#if audioUrl}
-        <div transition:fade class="audio-player">
-            <audio
-                    bind:this={audioElement}
-                    controls
-                    src={audioUrl}
-            />
-            <div class="audio-tip">Press space to play/pause</div>
-        </div>
+        <div class="error">{error}</div>
     {/if}
 </div>
 
 <style>
-    .audio-generator {
-        width: 100%;
-        max-width: 600px;
-        margin: 0 auto;
+    .compact-audio-gen {
+        width: 250px;
+        padding: 10px;
+        background: #2d3748;
+        border-radius: 6px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         font-family: sans-serif;
+        color: white;
     }
 
-    .input-group {
-        margin-bottom: 1rem;
+    .visualizer {
+        height: 60px;
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        margin-bottom: 10px;
+        background: #1a202c;
+        padding: 5px;
+        border-radius: 4px;
+    }
+
+    .bar {
+        flex: 1;
+        min-height: 1px;
+        border-radius: 2px;
+        transition: height 0.1s ease-out;
     }
 
     textarea {
         width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ccc;
+        padding: 8px;
+        margin-bottom: 8px;
+        background: #4a5568;
+        border: none;
         border-radius: 4px;
-        resize: vertical;
-        min-height: 100px;
-        font-size: 1rem;
-        margin-bottom: 0.5rem;
+        color: white;
+        resize: none;
     }
 
     textarea:focus {
-        outline: none;
-        border-color: #646cff;
-        box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+        outline: 1px solid #4299e1;
     }
 
     .controls {
         display: flex;
-        gap: 0.5rem;
-        align-items: center;
+        gap: 8px;
     }
 
     select {
-        padding: 0.5rem;
+        flex: 1;
+        padding: 6px;
+        background: #4a5568;
+        border: none;
         border-radius: 4px;
-        border: 1px solid #ccc;
-        background: white;
-        flex-grow: 1;
+        color: white;
     }
 
     button {
-        padding: 0.5rem 1rem;
-        background: #646cff;
-        color: white;
+        padding: 6px 12px;
+        background: #4299e1;
         border: none;
         border-radius: 4px;
+        color: white;
         cursor: pointer;
-        font-size: 1rem;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        transition: background 0.2s;
-    }
-
-    button:hover {
-        background: #535bf2;
+        gap: 6px;
     }
 
     button:disabled {
-        background: #ccc;
+        opacity: 0.6;
         cursor: not-allowed;
     }
 
-    .loading {
-        position: relative;
-    }
-
     .spinner {
-        width: 1rem;
-        height: 1rem;
-        border: 2px solid rgba(255, 255, 255, 0.3);
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(255,255,255,0.3);
         border-radius: 50%;
         border-top-color: white;
-        animation: spin 1s ease-in-out infinite;
+        animation: spin 1s linear infinite;
     }
 
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
 
-    .error-message {
-        color: #ff3e3e;
-        background: #ffebeb;
-        padding: 0.75rem;
-        border-radius: 4px;
-        margin-bottom: 1rem;
-    }
-
-    .audio-player {
-        margin-top: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    audio {
-        width: 100%;
-    }
-
-    .audio-tip {
-        font-size: 0.8rem;
-        color: #666;
-        text-align: center;
+    .error {
+        margin-top: 8px;
+        color: #fc8181;
+        font-size: 12px;
     }
 </style>

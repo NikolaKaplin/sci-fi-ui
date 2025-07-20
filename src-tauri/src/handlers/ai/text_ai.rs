@@ -38,15 +38,15 @@ impl TextAi {
     }
 }
 
-pub async fn generate_text(
-    client: &ReqwestClent,
-    options: TextAi,
-) -> Result<String, reqwest::Error> {
-    let url = format!("{}", v1::GENERATE_TEXT);
-    let query_params = options.to_query_params();
-
-    let response = client.get(&url, &options);
-
-    let body = response.text().await?;
-    Ok(body)
-}
+// pub async fn generate_text(
+//     client: &ReqwestClent,
+//     options: TextAi,
+// ) -> Result<String, reqwest::Error> {
+//     let url = format!("{}", v1::BASE);
+//     let query_params = options.to_query_params();
+//
+//     let response = client.get(&url, &options);
+//
+//     let body = response.text().await?;
+//     Ok(body)
+// }
