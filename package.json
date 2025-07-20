@@ -15,6 +15,9 @@
 	"dependencies": {
 		"@tauri-apps/api": "^2",
 		"@tauri-apps/plugin-opener": "^2",
+		"clsx": "^2.1.1",
+		"encom-globe": "^0.5.4",
+		"tailwind-merge": "^3.3.1",
 		"xterm": "^5.3.0",
 		"xterm-addon-fit": "^0.8.0"
 	},

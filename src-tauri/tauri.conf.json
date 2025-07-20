@@ -10,13 +10,15 @@
 		"frontendDist": "../build"
 	},
 	"app": {
+		"withGlobalTauri": true,
 		"windows": [
 			{
 				"title": "sci-fi-ui",
 				"fullscreen": true,
 				"decorations": false,
 				"resizable": false,
-				"label": "main"
+				"label": "main",
+				"visible": false
 			}
 		],
 		"security": {

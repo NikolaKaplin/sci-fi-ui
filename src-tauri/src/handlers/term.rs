@@ -1,28 +1,25 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use portable_pty::{CommandBuilder, PtyPair, PtySize};
+use portable_pty::{CommandBuilder, PtySize};
 use std::{
-    io::{BufRead, BufReader, Read, Write},
+    io::{BufRead, Write},
     process::exit,
-    sync::Arc,
     thread::{self},
 };
 
-use tauri::{async_runtime::Mutex as AsyncMutex, State};
+use tauri::{State};
 
 use crate::AppState;
 
 #[tauri::command]
-// create a shell and add to it the $TERM env variable so we can use clear and other commands
 pub async fn async_create_shell(state: State<'_, AppState>) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     let mut cmd = CommandBuilder::new("powershell.exe");
 
     #[cfg(not(target_os = "windows"))]
     let mut cmd = CommandBuilder::new("bash");
-
-    // add the $TERM env variable so we can use clear and other commands
+    
 
     #[cfg(target_os = "windows")]
     cmd.env("TERM", "cygwin");
@@ -54,10 +51,8 @@ pub async fn async_write_to_pty(data: &str, state: State<'_, AppState>) -> Resul
 pub async fn async_read_from_pty(state: State<'_, AppState>) -> Result<Option<String>, ()> {
     let mut reader = state.reader.lock().await;
     let data = {
-        // Read all available text
         let data = reader.fill_buf().map_err(|_| ())?;
-
-        // Send te data to the webview if necessary
+        
         if data.len() > 0 {
             std::str::from_utf8(data)
                 .map(|v| Some(v.to_string()))

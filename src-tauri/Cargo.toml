@@ -26,3 +26,5 @@ tokio = {version="1.46.1", features= ["full", "time"] }
 portable-pty = "0.8.1"
 futures = "0.3.28"
 sysinfo = "0.36.0"
+reqwest = {version="0.12.22", features= ["json"] }
+thiserror = "2.0.12"

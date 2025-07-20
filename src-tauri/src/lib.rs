@@ -1,6 +1,6 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod handlers;
 mod utils;
+use handlers::ai::ai;
 use handlers::events::{
     start_cpu_monitor, start_memory_monitor, start_ping_monitor, start_process_monitor,
 };
@@ -11,6 +11,7 @@ use portable_pty::{native_pty_system, PtyPair, PtySize};
 use std::io::{Read, Write};
 use std::{io::BufReader, sync::Arc};
 use tauri::async_runtime::Mutex as AsyncMutex;
+use tauri::{ Manager};
 
 pub struct AppState {
     pub pty_pair: Arc<AsyncMutex<PtyPair>>,
@@ -40,13 +41,20 @@ pub fn run() {
             reader: Arc::new(AsyncMutex::new(BufReader::new(reader))),
         })
         .setup(|app| {
+            let main_window = app.get_webview_window("main").unwrap();
+
             let handle = app.handle();
 
-            // Запускаем все мониторы
             start_cpu_monitor(handle.clone());
             start_memory_monitor(handle.clone());
             start_process_monitor(handle.clone());
             start_ping_monitor(handle.clone());
+
+            let _app_handle = app.handle();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(1)); // Задержка 1 секунда
+                main_window.show().unwrap();
+            });
 
             Ok(())
         })
