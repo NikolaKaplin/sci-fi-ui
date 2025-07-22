@@ -1,4 +1,4 @@
-use crate::{handlers::ai::urls::v1, utils::reqwest_client::ReqwestClent};
+use crate::{handlers::ai::urls::v1, utils::http_client::HTTP_CLIENT};
 use reqwest::Error;
 use serde::Serialize;
 

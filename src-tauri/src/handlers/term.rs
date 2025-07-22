@@ -8,7 +8,7 @@ use std::{
     thread::{self},
 };
 
-use tauri::{State};
+use tauri::State;
 
 use crate::AppState;
 
@@ -19,7 +19,6 @@ pub async fn async_create_shell(state: State<'_, AppState>) -> Result<(), String
 
     #[cfg(not(target_os = "windows"))]
     let mut cmd = CommandBuilder::new("bash");
-    
 
     #[cfg(target_os = "windows")]
     cmd.env("TERM", "cygwin");
@@ -52,7 +51,7 @@ pub async fn async_read_from_pty(state: State<'_, AppState>) -> Result<Option<St
     let mut reader = state.reader.lock().await;
     let data = {
         let data = reader.fill_buf().map_err(|_| ())?;
-        
+
         if data.len() > 0 {
             std::str::from_utf8(data)
                 .map(|v| Some(v.to_string()))

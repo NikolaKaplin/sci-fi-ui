@@ -78,7 +78,6 @@
 		transform: translateY(20px);
 	}
 
-	/* Анимация печати */
 	.logo-piece {
 		animation:
 			typeIn 0.3s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275),
@@ -97,7 +96,6 @@
 		}
 	}
 
-	/* Курсор мигающий */
 	.cursor {
 		position: absolute;
 		right: -10px;
@@ -123,7 +121,6 @@
 		}
 	}
 
-	/* Эффект свечения */
 	@keyframes glow {
 		0%,
 		100% {
@@ -139,7 +136,6 @@
 		}
 	}
 
-	/* Плавное исчезновение */
 	.logo-container.fade-out {
 		opacity: 1;
 	}

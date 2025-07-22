@@ -17,14 +17,12 @@
 		})
 	}
 
-	// Write data from pty into the terminal
 	function writeToTerminal(data: string) {
 		return new Promise<void>(resolve => {
 			term.write(data, () => resolve())
 		})
 	}
 
-	// Write data from the terminal to the pty
 	function writeToPty(data: string) {
 		invoke('async_write_to_pty', { data })
 	}
@@ -99,41 +97,9 @@
 <div id="terminal" bind:this={terminalElement} class="cyber-terminal"></div>
 
 <style>
-	:global(body) {
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background-color: #000;
-	}
-
-	#terminal {
-		width: 100vw;
-		height: 100vh;
-		position: relative;
-		overflow: hidden;
-	}
-
-	:global(.xterm) {
-		padding: 20px;
-		--color: #0f0;
-		--glow: 0 0 10px var(--color), 0 0 20px var(--color);
-		filter: drop-shadow(var(--glow));
-	}
-
-	:global(.xterm-viewport) {
-		background-color: rgba(0, 0, 0, 0.7) !important;
-		backdrop-filter: blur(2px);
-	}
-
-	:global(.xterm-screen) {
-		border: 1px solid rgba(0, 255, 0, 0.2);
-		box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1);
-	}
-
-	:global(.xterm-cursor) {
-		background-color: #0f0 !important;
-		box-shadow: 0 0 10px #0f0;
-		animation: blink 1s infinite;
+	.cyber-terminal {
+		width: 100%;
+		height: 55vh;
 	}
 
 	@keyframes blink {
@@ -145,10 +111,6 @@
 		100% {
 			opacity: 0.3;
 		}
-	}
-
-	:global(.xterm-viewport::-webkit-scrollbar) {
-		width: 8px;
 	}
 
 	:global(.xterm-viewport::-webkit-scrollbar-track) {

@@ -1,5 +1,5 @@
-use crate::handlers::ai::urls::v1;
-use reqwest;
+use crate::{handlers::ai::urls::v1, utils::http_client::HTTP_CLIENT};
+use reqwest::{self};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -8,7 +8,7 @@ use thiserror::Error;
 pub enum Modality {
     Text,
     Image,
-    Audio, // Другие модальности можно добавить по необходимости
+    Audio,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,7 +40,15 @@ pub enum ApiError {
 
 #[tauri::command]
 pub async fn list_models() -> Result<Vec<Ai>, ApiError> {
-    let response = reqwest::get(v1::LIST_MODELS).await?;
+    let client = {
+        let guard = HTTP_CLIENT
+            .read()
+            .map_err(|e| format!("Lock error: {}", e))
+            .unwrap();
+        guard.clone() // Client реализует Clone
+    };
+
+    let response = client.get(v1::LIST_MODELS).send().await?;
 
     if !response.status().is_success() {
         let error_msg = format!(
@@ -59,15 +67,13 @@ pub async fn list_models() -> Result<Vec<Ai>, ApiError> {
 pub struct TextAi {
     pub prompt: String,
     pub model: String,
-    pub seed: i32,
-    pub temperature: f32,
-    pub top_p: f32,
-    pub presence_penalty: f32,
-    pub json: bool,
-    pub system: String,
-    pub stream: bool,
-    pub private: bool,
-    pub referrer: String,
+    pub seed: Option<i32>,
+    pub temperature: Option<f32>,
+    pub top_p: Option<f32>,
+    pub presence_penalty: Option<f32>,
+    pub json: Option<bool>,
+    pub system: Option<String>,
+    pub stream: Option<bool>,
+    pub private: Option<bool>,
+    pub referrer: Option<String>,
 }
-
-// pub async fn generate_text()

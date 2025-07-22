@@ -18,7 +18,7 @@
 				memory: number
 			}>
 		>('process_update', event => {
-			processes = event.payload.sort((a, b) => b.cpu - a.cpu).slice(0, 10)
+			processes = event.payload.sort((a, b) => b.cpu - a.cpu).slice(0, 9)
 		})
 
 		return () => {

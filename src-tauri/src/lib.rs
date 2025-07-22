@@ -1,9 +1,11 @@
 mod handlers;
 mod utils;
 use handlers::ai::audio::generate_audio;
+use handlers::config::pollinations_ai::{get_api_token, save_api_token};
 use handlers::events::{
     start_cpu_monitor, start_memory_monitor, start_ping_monitor, start_process_monitor,
 };
+use handlers::file_system::{get_drives, get_parent_dir, list_dir};
 use handlers::term::{
     async_create_shell, async_read_from_pty, async_resize_pty, async_write_to_pty,
 };
@@ -11,7 +13,8 @@ use portable_pty::{native_pty_system, PtyPair, PtySize};
 use std::io::{Read, Write};
 use std::{io::BufReader, sync::Arc};
 use tauri::async_runtime::Mutex as AsyncMutex;
-use tauri::{ Manager};
+use tauri::Manager;
+use tauri_plugin_store;
 
 pub struct AppState {
     pub pty_pair: Arc<AsyncMutex<PtyPair>>,
@@ -35,6 +38,8 @@ pub fn run() {
     let writer = pty_pair.master.take_writer().unwrap();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             pty_pair: Arc::new(AsyncMutex::new(pty_pair)),
             writer: Arc::new(AsyncMutex::new(writer)),
@@ -60,6 +65,11 @@ pub fn run() {
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            save_api_token,
+            get_api_token,
+            get_parent_dir,
+            get_drives,
+            list_dir,
             generate_audio,
             async_write_to_pty,
             async_resize_pty,
